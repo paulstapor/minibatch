@@ -11,7 +11,7 @@ function OptimizerOptions = getOptimizerOptions(algorithm, miniBatchSize, ModelS
         % fmincon options are set
         OptimizerOptions = optimset(...
                 'algorithm', 'interior-point',...
-                'display', 'off', ...
+                'display', 'iter', ...
                 'TolX', 1e-12, ...
                 'TolFun', 1e-10, ...
                 'TolGrad', 1e-6, ...
@@ -26,11 +26,11 @@ function OptimizerOptions = getOptimizerOptions(algorithm, miniBatchSize, ModelS
                 'miniBatchSize', miniBatchSize, ...
                 'dataSetSize', ModelSpec.nMeasure, ...
                 'barrier', 'log-barrier', ...
-                'display', file, ...
+                'display', 'file', ...
                 'outputID', [], ...
                 'restriction', true, ...
                 'reportInterval', 1, ...
-                'method', 'rmsprop');
+                'method', algorithm);
     end
     
     switch algorithm
@@ -48,37 +48,18 @@ function OptimizerOptions = getOptimizerOptions(algorithm, miniBatchSize, ModelS
                 'epsTau', 1e-5, ...
                 'tau', 250);
             
-            OptimizerOptions(2) = optimizerOptions(1);
-            OptimizerOptions(2).hyperparams.rho1 = 0.8;
-            OptimizerOptions(2).hyperparams.rho2 = 0.9;
-                        
-            OptimizerOptions(3) = optimizerOptions(1);
-            OptimizerOptions(3).hyperparams.rho1 = 0.9;
-            OptimizerOptions(3).hyperparams.rho2 = 0.9;
-            
-            OptimizerOptions(4) = optimizerOptions(1);
-            OptimizerOptions(4).hyperparams.rho1 = 0.9;
-            OptimizerOptions(4).hyperparams.rho2 = 0.95;
- 
-            OptimizerOptions(5) = optimizerOptions(1);
-            OptimizerOptions(5).hyperparams.rho1 = 0.5;
-            OptimizerOptions(5).hyperparams.rho2 = 0.99;
-            
-            OptimizerOptions(6) = optimizerOptions(1);
-            OptimizerOptions(6).hyperparams.rho1 = 0.8;
-            OptimizerOptions(6).hyperparams.rho2 = 0.99;
-            
-            OptimizerOptions(7) = optimizerOptions(1);
-            OptimizerOptions(7).hyperparams.rho1 = 0.9;
-            OptimizerOptions(7).hyperparams.rho2 = 0.99;
-            
-            OptimizerOptions(8) = optimizerOptions(1);
-            OptimizerOptions(8).hyperparams.rho1 = 0.9;
-            OptimizerOptions(8).hyperparams.rho2 = 0.999;
-            
-            OptimizerOptions(9) = optimizerOptions(1);
-            OptimizerOptions(9).hyperparams.rho1 = 0.5;
-            OptimizerOptions(9).hyperparams.rho2 = 0.8;
+            counter = 0;
+            for rho1 = [0.5, 0.8, 0.9, 0.99, 0.999]
+                for rho2 = [0.5, 0.8, 0.9, 0.99, 0.999]
+                    for eps0 = [0.1, 0.025]
+                        counter = counter + 1;
+                        OptimizerOptions(counter) = OptimizerOptions(1);
+                        OptimizerOptions(counter).hyperparams.rho1 = rho1;
+                        OptimizerOptions(counter).hyperparams.rho2 = rho2;
+                        OptimizerOptions(counter).hyperparams.eps0 = eps0;
+                    end
+                end
+            end
             
         case 'adadelta'
             
