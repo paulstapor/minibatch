@@ -1,31 +1,33 @@
-% Function for benchmarking minibatch methods on the enz catalysis model.
+% Function for benchmarking minibatch methods on the jakstat Swameye model
 
 % Artificial data is to be created beforehand.
 % All options for the optimizer are to be passed over to this function.
 % A log file is written by this function, with optimization history.
 
-function [status, results] = evaluateMinibatchOptimization_EC(data, con0, ModelSpec, optimizer, OptimizerOptions, resultsfolder)
+function [status, results] = evaluateMinibatchOptimization_JSS(data, con0, ModelSpec, optimizer, OptimizerOptions, resultsfolder)
 
     % Process input
-    sigma2 = ModelSpec.sigma2;
-    nTimepoints = ModelSpec.nTimepoints;
+    timepoints = ModelSpec.timepoints;
     nMeasure = ModelSpec.nMeasure;
     theta = ModelSpec.theta;
     multistarts = ModelSpec.multistarts;
     
     %% Prepare optimization with PESTO
     % parameters
-    parameters.name   = {'log(theta_1)', 'log(theta_2)', 'log(theta_3)', 'log(theta_4)'};
-    parameters.min    = ModelSpec.lowerBound * ones(1, 4);
-    parameters.max    = ModelSpec.upperBound * ones(1, 4);
-    parameters.number = length(parameters.name);
+    parameters.min = ModelSpec.lowerBounds;
+    parameters.max = ModelSpec.upperBounds;
+    parameters.number = length(parameters.min);
+    parameters.name   = {'log_{10}(p1)','log_{10}(p2)','log_{10}(p3)','log_{10}(p4)',...
+        'log_{10}(sp1)','log_{10}(sp2)','log_{10}(sp3)','log_{10}(sp4)','log_{10}(sp5)',...
+        'log_{10}(offset_{tSTAT})','log_{10}(offset_{pSTAT})','log_{10}(scale_{tSTAT})','log_{10}(scale_{pSTAT})',...
+        'log_{10}(\sigma_{pSTAT})','log_{10}(\sigma_{tSTAT})','log_{10}(\sigma_{pEpoR})'};
     parameters.guess  = ModelSpec.par0;
     
     % objective function
     if strcmp(optimizer, 'fmincon')
-        objectiveFunction = @(theta) logLikelihoodEC(theta, data, sigma2, con0, nTimepoints, 1:nMeasure);
+        objectiveFunction = @(theta) logLikelihoodJSS(theta, data, con0, timepoints, 1:nMeasure);
     else
-        objectiveFunction = @(theta, miniBatch) logLikelihoodEC(theta, data, sigma2, con0, nTimepoints, miniBatch);
+        objectiveFunction = @(theta, miniBatch) logLikelihoodJSS(theta, data, con0, timepoints, miniBatch);
     end
     
     % Pesto options
@@ -48,9 +50,9 @@ function [status, results] = evaluateMinibatchOptimization_EC(data, con0, ModelS
     %% Prepare files for output
     
     % Create a new folder, if it doesn't exist yet
-    ec_resultsfolder = [resultsfolder '/enzymaticCatalysis'];
-    if ~exist(ec_resultsfolder,'dir')
-        mkdir(ec_resultsfolder);
+    jss_resultsfolder = [resultsfolder '/jakstatSwameye'];
+    if ~exist(jss_resultsfolder,'dir')
+        mkdir(jss_resultsfolder);
     end
         
     if ~strcmp(optimizer, 'fmincon')
@@ -58,11 +60,11 @@ function [status, results] = evaluateMinibatchOptimization_EC(data, con0, ModelS
         % Open a new file for this run to write the console output there
         iFile = 1;
         while iFile > 0
-            ec_resultsfile = [ec_resultsfolder '/' OptimizerOptions.method '-Run-' num2str(iFile) '.txt'];
-            if exist(ec_resultsfile,'file')
+            jss_resultsfile = [jss_resultsfolder '/' OptimizerOptions.method '-Run-' num2str(iFile) '.txt'];
+            if exist(jss_resultsfile,'file')
                 iFile = iFile + 1;
             else
-                outputID = fopen(ec_resultsfile, 'w');
+                outputID = fopen(jss_resultsfile, 'w');
                 strFileNum = num2str(iFile);
                 iFile = 0;
             end
@@ -71,7 +73,7 @@ function [status, results] = evaluateMinibatchOptimization_EC(data, con0, ModelS
         % Write the optimization options to this file
         fprintf(outputID, '======================================\n');
         fprintf(outputID, ' Benchmarking Optimization with DELOS \n');
-        fprintf(outputID, '      Enzymatic Catalysis Example     \n');
+        fprintf(outputID, ' JAK2/STAT5 signaling Swameye example \n');
         fprintf(outputID, '======================================\n\n');
         fprintf(outputID, 'Date and time: %s \n\n', datetime);
         fprintf(outputID, 'Algorithm %s, Run nr. %s\n', OptimizerOptions.method, strFileNum);
@@ -102,9 +104,9 @@ function [status, results] = evaluateMinibatchOptimization_EC(data, con0, ModelS
     try
         parameters = getMultiStarts(parameters, objectiveFunction, optionsPesto);
         if strcmp(optimizer, 'fmincon')
-            save([ec_resultsfolder '/parameters-fmincon-Run.mat'], 'parameters');
+            save([jss_resultsfolder '/parameters-fmincon-Run.mat'], 'parameters');
         else
-            save([ec_resultsfolder '/parameters-' OptimizerOptions.method '-Run-' strFileNum '.mat'], 'parameters');
+            save([jss_resultsfolder '/parameters-' OptimizerOptions.method '-Run-' strFileNum '.mat'], 'parameters');
             % plotMultiStartHistory(parameters);
         end
         results = struct(...
